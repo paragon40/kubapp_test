@@ -1,0 +1,81 @@
+name: Build Platform Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Target environment
+        required: false
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prod
+
+      manifest:
+        description: CI manifest file
+        required: false
+        default: gitops/state/final_ci_data.json
+        type: string
+
+      registry:
+        description: Platform registry root directory
+        required: false
+        default: gitops/registry
+        type: string
+
+  workflow_call:
+    inputs:
+      env:
+        description: Target environment
+        required: true
+        type: string
+
+      manifest:
+        description: CI manifest file
+        required: true
+        type: string
+
+      registry:
+        description: Platform registry root directory
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  platform_build:
+    runs-on: ubuntu-latest
+
+    env:
+      ENV: ${{ inputs.env }}
+      MANIFEST: ${{ inputs.manifest }}
+      REGISTRY: ${{ inputs.registry }}
+
+    steps:
+      - name: Checkout KubApp
+        uses: actions/checkout@v4
+
+      - name: Build platform App registry
+        run: |
+          python scripts/platform/build_app_registry.py
+
+      - name: Build platform Service registry
+        run: |
+          python scripts/platform/build_service_registry.py
+
+      - name: Validate platform registry
+        run: |
+          python scripts/platform/validate_registry.py
+
+      - name: Commit platform registry
+        run: |
+          set -euo pipefail
+          DIR="gitops"
+          MSG="[PLATFORM-BUILD] Update platform registry from CI"
+          bash scripts/extra/commit.sh "$DIR" "$MSG"
+
+      - name: Platform build complete
+        run: echo "Platform registry build completed successfully"

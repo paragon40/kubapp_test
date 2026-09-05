@@ -1,0 +1,31 @@
+namespace: monitoring
+ingress:
+  name: kubapp-monitoring-alb
+  className: alb
+  baseDomain: rundailytest.online
+  enableSubdomainRouting: true
+  certificateArn: arn:aws:acm:us-east-1:532918215760:certificate/88753851-e3e6-4911-94ce-7802a721aa41
+  annotations:
+    scheme: internet-facing
+    targetType: ip
+    healthcheckPath: /
+    listenPorts:
+      - HTTP: 80
+      - HTTPS: 443
+    group: kubapp-shared
+services:
+  - name: grafana
+    enabled: true
+    port: 80
+    backend:
+      service: kube-prometheus-stack-grafana
+  - name: prometheus
+    enabled: true
+    port: 9090
+    backend:
+      service: kube-prometheus-stack-prometheus
+  - name: alertmanager
+    enabled: true
+    port: 9093
+    backend:
+      service: kube-prometheus-stack-alertmanager
