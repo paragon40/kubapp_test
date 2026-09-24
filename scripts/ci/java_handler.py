@@ -1,6 +1,7 @@
 import subprocess
 import os
 from reuse import get_latest_commit_id
+from command_policy import ensure_command_is_safe
 
 class JavaHandler:
     def __init__(
@@ -16,7 +17,7 @@ class JavaHandler:
         self.ci_commands = ci_commands or {}
 
     def ensure_var_exist(self, function, command):
-        result = self.extra_args.get(command)
+        result = self.ci_commands.get(command)
         if not result:
             function = function.upper()
             raise RuntimeError(
@@ -71,6 +72,7 @@ class JavaHandler:
         )
 
         command = self.ensure_var_exist("lint", "lint")
+        command = ensure_command_is_safe(command, "java")
         subprocess.run(
             command,
             cwd=self.app_dir,
@@ -86,7 +88,8 @@ class JavaHandler:
         )
 
         command = self.ensure_var_exist("security_analysis", "security")
-        sec_var = self.extra_args.get("security_env", [])
+        command = ensure_command_is_safe(command, "java")
+        sec_var = self.ci_commands.get("security_env", [])
         if sec_var:
           for a in sec_var:
             var = os.getenv(a)
@@ -96,7 +99,6 @@ class JavaHandler:
                     f"SECURITY GATE FAILED: NVD_API_KEY is required "
                     f"for OWASP Dependency-Check. "
                     f"'security_env' is detected. Remove it if NOT Neded.")
-            print(f"We Found API_KEY!!!!!!!!!!!!!!!!!!!!!!!!")
 
         subprocess.run( command, cwd=self.app_dir, check=True, )
         print(
@@ -110,7 +112,8 @@ class JavaHandler:
             f"Started Unit Tests......"
         )
 
-        command = self.ensure_var_exist["unit_tests", "test"]
+        command = self.ensure_var_exist("unit_tests", "test")
+        command = ensure_command_is_safe(command, "java")
         subprocess.run(
             command,
             cwd=self.app_dir,
